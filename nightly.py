@@ -1,4 +1,18 @@
 #!/usr/bin/env python
+"""
+nightly.py - tarball creator
+
+This is a script that creates tarballs
+for MediaWiki extensions based on the
+configuration in conf.py. It accepts
+one optional argument:
+
+* --all: Generate tarballs for all extensions.
+
+By default, it generates only the tarball for the
+VisualEditor extension. This will change in the future
+when debugging becomes less rare.
+"""
 
 import glob
 import os
@@ -10,6 +24,10 @@ import conf
 
 
 def fetch_all_extensions():
+    """
+    Returns raw text of extension list,
+    should not be called directly
+    """
     print 'Fetching list of all extensions...'
     req = urllib.urlopen(conf.EXT_LIST)
     text = req.read()
@@ -18,6 +36,10 @@ def fetch_all_extensions():
 
 
 def get_all_extensions(update=False):
+    """
+    Returns a list of all extension names,
+    possibly using a cached list locally
+    """
     fname = os.path.join(conf.SRC_PATH, 'extension-list')
     if update or not os.path.exists(fname):
         with open(fname, 'w') as f:
@@ -31,10 +53,19 @@ def get_all_extensions(update=False):
 
 
 def shell_exec(args, **kwargs):
+    """
+    Shortcut wrapper to execute a shell command
+
+    >>> shell_exec(['ls', '-l'])
+    """
     return subprocess.check_output(args, **kwargs)
 
 
 def update_extension(ext):
+    """
+    Fetch an extension's updates, and
+    create new tarballs if needed
+    """
     full_path = os.path.join(conf.SRC_PATH, ext)
     print 'Starting update for %s' % ext
     if not os.path.exists(full_path):
@@ -45,20 +76,27 @@ def update_extension(ext):
     for branch in conf.SUPPORTED_VERSIONS:
         os.chdir(full_path)
         print 'Creating %s for %s' %(branch, ext)
+        # Update remotes
         shell_exec(['git', 'fetch'])
-        shell_exec(['git', 'reset', '--hard', 'origin/master'])
         try:
+            # Could fail if repo is empty
+            shell_exec(['git', 'reset', '--hard', 'origin/master'])
+            # Checkout the branch
             shell_exec(['git', 'checkout', 'origin/%s' % branch])
         except subprocess.CalledProcessError:
             print 'Error: could not checkout origin/%s' % branch
             continue
+        # Sync submodules in case their urls have changed
         shell_exec(['git', 'submodule', 'sync'])
+        # Update them, initializing new ones if needed
         shell_exec(['git', 'submodule', 'update', '--init'])
+        # Gets short hash of HEAD
         rev = shell_exec(['git', 'rev-parse', '--short', 'HEAD']).strip()
         tarball_fname = '%s-%s-%s.tar.gz' % (ext, branch, rev)
         if os.path.exists(os.path.join(conf.DIST_PATH, tarball_fname)):
             print 'No updates to branch, tarball already exists.'
             continue
+        # Create a 'version' file with basic info about the tarball
         with open('version', 'w') as f:
             f.write('%s: %s\n' %(ext, branch))
             f.write(shell_exec(['date', '+%Y-%m-%dT%H:%M:%S']) + '\n')  # TODO: Do this in python
@@ -69,8 +107,8 @@ def update_extension(ext):
             # FIXME: Race condition, we should probably do this later on...
             os.unlink(old)
         os.chdir(conf.SRC_PATH)
+        # Finally, create the new tarball
         shell_exec(['tar', 'czPf', tarball_fname, ext])
-        pass
     print 'Moving new tarballs into dist/'
     tarballs = glob.glob(os.path.join(conf.SRC_PATH, '*.tar.gz'))
     for tar in tarballs:
@@ -80,6 +118,9 @@ def update_extension(ext):
 
 
 def main():
+    """
+    Updates all extensions
+    """
     extensions = get_all_extensions(update=True)
     print 'Starting update of all extensions...'
     for ext in extensions:
