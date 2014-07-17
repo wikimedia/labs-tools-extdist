@@ -68,7 +68,6 @@ def update_extension(ext):
         for old in old_tarballs:
             # FIXME: Race condition, we should probably do this later on...
             os.unlink(old)
-            pass
         os.chdir(conf.SRC_PATH)
         shell_exec(['tar', 'czPf', tarball_fname, ext])
         pass
@@ -86,7 +85,6 @@ def main():
     for ext in extensions:
         update_extension(ext)
     print 'Finished update of all extensions!'
-    pass
 
 
 if __name__ == '__main__':
@@ -94,5 +92,3 @@ if __name__ == '__main__':
         main()
     else:
         update_extension('VisualEditor')
-
-
