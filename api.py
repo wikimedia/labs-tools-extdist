@@ -68,7 +68,7 @@ def entry_point():
     if not ext and not version:
         # Our home page is a redirect to mw.o
         return redirect('https://www.mediawiki.org/wiki/Special:ExtensionDistributor', code=302)
-    if not version in conf.SUPPORTED_VERSIONS:
+    if not version in nightly.get_supported_branches():
         # Check version is a "supported" one
         return out({'error': 'badversion'})
     if not ext in nightly.get_all_extensions():

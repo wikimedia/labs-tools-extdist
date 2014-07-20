@@ -15,6 +15,7 @@ when debugging becomes less rare.
 """
 
 import glob
+import json
 import logging
 import os
 import subprocess
@@ -30,7 +31,7 @@ def fetch_all_extensions():
     should not be called directly
     """
     logging.debug('Fetching list of all extensions...')
-    req = urllib.urlopen(conf.EXT_LIST)
+    req = urllib.urlopen(get_extension_list())
     text = req.read()
     req.close()
     return text
@@ -51,6 +52,46 @@ def get_all_extensions(update=False):
             exts = f.read()
 
     return exts.strip().splitlines()
+
+
+def get_supported_branches():
+    if conf.SUPPORTED_VERSIONS is None:
+        conf.SUPPORTED_VERSIONS = get_extension_config()['versions']
+    return conf.SUPPORTED_VERSIONS
+
+
+def get_extension_list():
+    if conf.EXT_LIST is None:
+        conf.EXT_LIST = get_extension_config()['extension-list']
+    return conf.EXT_LIST
+
+
+def fetch_extension_config():
+    logging.debug('Fetching ExtensionDistributor config from API...')
+    data = {
+        'action': 'query',
+        'meta': 'siteinfo',
+        'format': 'json',
+    }
+    req = urllib.urlopen(conf.API_URL, data)
+    resp = json.loads(req.read())
+    return {
+        'versions': resp['query']['general']['extensiondistributor']['snapshots'],
+        'extension-list': resp['query']['general']['extensiondistributor']['list']
+    }
+
+
+def get_extension_config(update=False):
+    fname = os.path.join(conf.SRC_PATH, 'mw-conf.json')
+    if update or not os.path.exists(fname):
+        with open(fname, 'w') as f:
+            conf = fetch_extension_config()
+            json.dump(conf, f)
+    else:
+        with open(fname, 'r') as f:
+            conf = json.load(f)
+
+    return conf
 
 
 def shell_exec(args, **kwargs):
@@ -74,7 +115,7 @@ def update_extension(ext):
         logging.debug('Cloning %s' % ext)
         shell_exec(['git', 'clone', conf.GIT_URL % ext, ext])
         pass
-    for branch in conf.SUPPORTED_VERSIONS:
+    for branch in get_supported_branches():
         os.chdir(full_path)
         logging.info('Creating %s for %s' %(branch, ext))
         # Update remotes
