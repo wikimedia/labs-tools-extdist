@@ -15,6 +15,7 @@ when debugging becomes less rare.
 """
 
 import glob
+import logging
 import os
 import subprocess
 import sys
@@ -28,7 +29,7 @@ def fetch_all_extensions():
     Returns raw text of extension list,
     should not be called directly
     """
-    print 'Fetching list of all extensions...'
+    logging.debug('Fetching list of all extensions...')
     req = urllib.urlopen(conf.EXT_LIST)
     text = req.read()
     req.close()
@@ -67,15 +68,15 @@ def update_extension(ext):
     create new tarballs if needed
     """
     full_path = os.path.join(conf.SRC_PATH, ext)
-    print 'Starting update for %s' % ext
+    logging.info('Starting update for %s' % ext)
     if not os.path.exists(full_path):
         os.chdir(conf.SRC_PATH)
-        print 'Cloning %s' % ext
+        logging.debug('Cloning %s' % ext)
         shell_exec(['git', 'clone', conf.GIT_URL % ext, ext])
         pass
     for branch in conf.SUPPORTED_VERSIONS:
         os.chdir(full_path)
-        print 'Creating %s for %s' %(branch, ext)
+        logging.info('Creating %s for %s' %(branch, ext))
         # Update remotes
         shell_exec(['git', 'fetch'])
         try:
@@ -84,7 +85,7 @@ def update_extension(ext):
             # Checkout the branch
             shell_exec(['git', 'checkout', 'origin/%s' % branch])
         except subprocess.CalledProcessError:
-            print 'Error: could not checkout origin/%s' % branch
+            logging.error('could not checkout origin/%s' % branch)
             continue
         # Sync submodules in case their urls have changed
         shell_exec(['git', 'submodule', 'sync'])
@@ -94,7 +95,7 @@ def update_extension(ext):
         rev = shell_exec(['git', 'rev-parse', '--short', 'HEAD']).strip()
         tarball_fname = '%s-%s-%s.tar.gz' % (ext, branch, rev)
         if os.path.exists(os.path.join(conf.DIST_PATH, tarball_fname)):
-            print 'No updates to branch, tarball already exists.'
+            logging.debug('No updates to branch, tarball already exists.')
             continue
         # Create a 'version' file with basic info about the tarball
         with open('version', 'w') as f:
@@ -102,19 +103,19 @@ def update_extension(ext):
             f.write(shell_exec(['date', '+%Y-%m-%dT%H:%M:%S']) + '\n')  # TODO: Do this in python
             f.write(rev + '\n')
         old_tarballs = glob.glob(os.path.join(conf.DIST_PATH, '%s-%s-*.tar.gz' %(ext, branch)))
-        print 'Deleting old tarballs...'
+        logging.debug('Deleting old tarballs...')
         for old in old_tarballs:
             # FIXME: Race condition, we should probably do this later on...
             os.unlink(old)
         os.chdir(conf.SRC_PATH)
         # Finally, create the new tarball
         shell_exec(['tar', 'czPf', tarball_fname, ext])
-    print 'Moving new tarballs into dist/'
+    logging.debug('Moving new tarballs into dist/')
     tarballs = glob.glob(os.path.join(conf.SRC_PATH, '*.tar.gz'))
     for tar in tarballs:
         fname = tar.split('/')[-1]
         os.rename(tar, os.path.join(conf.DIST_PATH, fname))
-    print 'Finished update for %s' % ext
+    logging.info('Finished update for %s' % ext)
 
 
 def main():
@@ -122,10 +123,10 @@ def main():
     Updates all extensions
     """
     extensions = get_all_extensions(update=True)
-    print 'Starting update of all extensions...'
+    logging.info('Starting update of all extensions...')
     for ext in extensions:
         update_extension(ext)
-    print 'Finished update of all extensions!'
+    logging.info('Finished update of all extensions!')
 
 
 if __name__ == '__main__':
