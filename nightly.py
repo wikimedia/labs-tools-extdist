@@ -90,7 +90,13 @@ def get_extension_config(update=False):
             json.dump(e_config, f)
     else:
         with open(fname, 'r') as f:
-            e_config = json.load(f)
+            try:
+                e_config = json.load(f)
+            except ValueError:
+                e_config = None
+
+    if e_config is None:
+        e_config = get_extension_config(update=True)
 
     return e_config
 
@@ -109,10 +115,6 @@ def update_extension(ext):
     Fetch an extension's updates, and
     create new tarballs if needed
     """
-    # Sanity check, make sure conf.SRC_PATH exists
-    if not os.path.isdir(conf.SRC_PATH):
-        shell_exec(['mkdir', '-p', conf.SRC_PATH])
-
     full_path = os.path.join(conf.SRC_PATH, ext)
     logging.info('Starting update for %s' % ext)
     if not os.path.exists(full_path):
@@ -173,6 +175,13 @@ def main():
     for ext in extensions:
         update_extension(ext)
     logging.info('Finished update of all extensions!')
+
+
+# Init
+if not os.path.isdir(conf.SRC_PATH):
+    shell_exec(['mkdir', '-p', conf.SRC_PATH])
+if not os.path.isdir(conf.DIST_PATH):
+    shell_exec(['mkdir', '-p', conf.DIST_PATH])
 
 
 if __name__ == '__main__':
