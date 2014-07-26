@@ -73,8 +73,9 @@ def fetch_extension_config():
         'meta': 'siteinfo',
         'format': 'json',
     }
-    req = urllib.urlopen(conf.API_URL, data)
+    req = urllib.urlopen(conf.API_URL, urllib.urlencode(data))
     resp = json.loads(req.read())
+    req.close()
     return {
         'versions': resp['query']['general']['extensiondistributor']['snapshots'],
         'extension-list': resp['query']['general']['extensiondistributor']['list']
