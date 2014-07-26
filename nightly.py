@@ -110,7 +110,7 @@ def update_extension(ext):
     """
     # Sanity check, make sure conf.SRC_PATH exists
     if not os.path.isdir(conf.SRC_PATH):
-        os.mkdir(conf.SRC_PATH)
+        shell_exec(['mkdir', '-p', conf.SRC_PATH])
 
     full_path = os.path.join(conf.SRC_PATH, ext)
     logging.info('Starting update for %s' % ext)
