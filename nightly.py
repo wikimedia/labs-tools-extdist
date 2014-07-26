@@ -108,6 +108,10 @@ def update_extension(ext):
     Fetch an extension's updates, and
     create new tarballs if needed
     """
+    # Sanity check, make sure conf.SRC_PATH exists
+    if not os.path.isdir(conf.SRC_PATH):
+        os.mkdir(conf.SRC_PATH)
+
     full_path = os.path.join(conf.SRC_PATH, ext)
     logging.info('Starting update for %s' % ext)
     if not os.path.exists(full_path):
