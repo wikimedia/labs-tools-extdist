@@ -85,13 +85,13 @@ def get_extension_config(update=False):
     fname = os.path.join(conf.SRC_PATH, 'mw-conf.json')
     if update or not os.path.exists(fname):
         with open(fname, 'w') as f:
-            conf = fetch_extension_config()
-            json.dump(conf, f)
+            e_config = fetch_extension_config()
+            json.dump(e_config, f)
     else:
         with open(fname, 'r') as f:
-            conf = json.load(f)
+            e_config = json.load(f)
 
-    return conf
+    return e_config
 
 
 def shell_exec(args, **kwargs):
