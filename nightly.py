@@ -41,6 +41,7 @@ class AttrDict(dict):
 
 # Allow accessing settings as attributes
 conf = AttrDict(conf)
+conf.EXT_PATH = os.path.join(conf.SRC_PATH, 'extensions')
 
 # Set up logging
 logging.basicConfig(
@@ -67,7 +68,7 @@ def get_all_extensions(update=False):
     Returns a list of all extension names,
     possibly using a cached list locally
     """
-    fname = os.path.join(conf.SRC_PATH, 'extension-list')
+    fname = os.path.join(conf.EXT_PATH, 'extension-list')
     if update or not os.path.exists(fname):
         with open(fname, 'w') as f:
             exts = fetch_all_extensions()
@@ -108,7 +109,7 @@ def fetch_extension_config():
 
 
 def get_extension_config(update=False):
-    fname = os.path.join(conf.SRC_PATH, 'mw-conf.json')
+    fname = os.path.join(conf.EXT_PATH, 'mw-conf.json')
     if update or not os.path.exists(fname):
         with open(fname, 'w') as f:
             e_config = fetch_extension_config()
@@ -140,10 +141,10 @@ def update_extension(ext):
     Fetch an extension's updates, and
     create new tarballs if needed
     """
-    full_path = os.path.join(conf.SRC_PATH, ext)
+    full_path = os.path.join(conf.EXT_PATH, ext)
     logging.info('Starting update for %s' % ext)
     if not os.path.exists(full_path):
-        os.chdir(conf.SRC_PATH)
+        os.chdir(conf.EXT_PATH)
         logging.debug('Cloning %s' % ext)
         shell_exec(['git', 'clone', conf.GIT_URL % ext, ext])
         pass
@@ -181,11 +182,11 @@ def update_extension(ext):
         for old in old_tarballs:
             # FIXME: Race condition, we should probably do this later on...
             os.unlink(old)
-        os.chdir(conf.SRC_PATH)
+        os.chdir(conf.EXT_PATH)
         # Finally, create the new tarball
         shell_exec(['tar', 'czPf', tarball_fname, ext])
     logging.debug('Moving new tarballs into dist/')
-    tarballs = glob.glob(os.path.join(conf.SRC_PATH, '*.tar.gz'))
+    tarballs = glob.glob(os.path.join(conf.EXT_PATH, '*.tar.gz'))
     for tar in tarballs:
         fname = tar.split('/')[-1]
         os.rename(tar, os.path.join(conf.DIST_PATH, fname))
@@ -204,8 +205,8 @@ def main():
 
 
 # Init
-if not os.path.isdir(conf.SRC_PATH):
-    shell_exec(['mkdir', '-p', conf.SRC_PATH])
+if not os.path.isdir(conf.EXT_PATH):
+    shell_exec(['mkdir', '-p', conf.EXT_PATH])
 if not os.path.isdir(conf.DIST_PATH):
     shell_exec(['mkdir', '-p', conf.DIST_PATH])
 

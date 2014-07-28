@@ -4,7 +4,7 @@
     "EXT_LIST": null,
     "GIT_URL": "https://gerrit.wikimedia.org/r/mediawiki/extensions/%s",
     "LOG_FILE": "extdist.log",
-    "SRC_PATH": "/srv/src/extensions",
+    "SRC_PATH": "/srv/src",
     "SUPPORTED_VERSIONS": null
 }
 
