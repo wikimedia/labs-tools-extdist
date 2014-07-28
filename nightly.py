@@ -80,13 +80,13 @@ def get_all_extensions(update=False):
 
 
 def get_supported_branches():
-    if conf.SUPPORTED_VERSIONS is None:
+    if conf.get('SUPPORTED_VERSIONS') is None:
         conf.SUPPORTED_VERSIONS = get_extension_config()['versions']
     return conf.SUPPORTED_VERSIONS
 
 
 def get_extension_list():
-    if conf.EXT_LIST is None:
+    if conf.get('EXT_LIST') is None:
         conf.EXT_LIST = get_extension_config()['extension-list']
     return conf.EXT_LIST
 
