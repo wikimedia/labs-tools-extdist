@@ -110,6 +110,7 @@ def get_all_extensions(update=False):
             exts = fetch_all_extensions()
             f.write(exts)
     else:
+        logging.debug('Loading extension-list from file cache')
         with open(fname, 'r') as f:
             exts = f.read()
 
@@ -234,6 +235,7 @@ def main():
     Updates all extensions
     """
     extensions = get_all_extensions(update=True)
+    logging.info('Processing %s extensions' % len(extensions))
     logging.info('Starting update of all extensions...')
     for ext in extensions:
         try:
