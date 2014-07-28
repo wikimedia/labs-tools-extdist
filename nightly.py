@@ -22,7 +22,25 @@ import subprocess
 import sys
 import urllib
 
-import conf
+# Load our config from JSON
+if os.path.exists('/etc/extdist.conf'):
+    with open('/etc/extdist.conf', 'r') as f:
+        conf = json.load(f)
+elif os.path.exists(os.path.join(os.path.dirname(__file__), 'conf.json')):
+    with open(os.path.join(os.path.dirname(__file__), 'conf.json'), 'r') as f:
+        conf = json.load(f)
+else:
+    print 'extdist is not configured properly.'
+    quit()
+
+
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+# Allow accessing settings as attributes
+conf = AttrDict(conf)
 
 
 def fetch_all_extensions():

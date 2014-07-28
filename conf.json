@@ -1,0 +1,9 @@
+{
+    "API_URL": "https://www.mediawiki.org/w/api.php",
+    "DIST_PATH": "/srv/dist",
+    "EXT_LIST": null,
+    "GIT_URL": "https://gerrit.wikimedia.org/r/mediawiki/extensions/%s",
+    "SRC_PATH": "/srv/src/extensions",
+    "SUPPORTED_VERSIONS": null
+}
+
