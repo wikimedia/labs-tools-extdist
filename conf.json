@@ -5,6 +5,7 @@
     "GIT_URL": "https://gerrit.wikimedia.org/r/mediawiki/extensions/%s",
     "LOG_FILE": "extdist.log",
     "SRC_PATH": "/srv/src",
+    "PID_FILE": "extdist.pid",
     "SUPPORTED_VERSIONS": null
 }
 

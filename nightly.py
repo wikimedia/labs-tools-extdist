@@ -51,6 +51,42 @@ logging.basicConfig(
 )
 
 
+def check_pid(pid):
+    """
+    Checks whether the given pid is running
+    """
+    try:
+        # This doesn't actually kill it, just checks if it is running
+        os.kill(pid, 0)
+    except OSError:
+        # Not running
+        return False
+    else:
+        # So it must be running
+        return True
+
+
+def create_pid_file():
+    """
+    Creates a pid file with the current pid
+    """
+    with open(conf.PID_FILE, 'w') as f:
+        f.write(str(os.getpid()))
+    logging.info('Creating pid file')
+
+# Check to make sure nightly.py isn't already running
+pid = os.getpid()
+if os.path.exists(conf.PID_FILE):
+    with open(conf.PID_FILE, 'r') as f:
+        old_pid = f.read()
+
+    if check_pid(int(old_pid)):
+        logging.warning('Another process of nightly.py is still running, quitting this one')
+        quit()
+
+create_pid_file()
+
+
 def fetch_all_extensions():
     """
     Returns raw text of extension list,
