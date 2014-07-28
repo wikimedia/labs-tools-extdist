@@ -42,6 +42,13 @@ class AttrDict(dict):
 # Allow accessing settings as attributes
 conf = AttrDict(conf)
 
+# Set up logging
+logging.basicConfig(
+    filename=conf.LOG_FILE,
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s:%(message)s'
+)
+
 
 def fetch_all_extensions():
     """
@@ -151,7 +158,8 @@ def update_extension(ext):
             # Checkout the branch
             shell_exec(['git', 'checkout', 'origin/%s' % branch])
         except subprocess.CalledProcessError:
-            logging.error('could not checkout origin/%s' % branch)
+            # Just a warning because this is expected for some extensions
+            logging.warning('could not checkout origin/%s' % branch)
             continue
         # Sync submodules in case their urls have changed
         shell_exec(['git', 'submodule', 'sync'])
