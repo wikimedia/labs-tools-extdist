@@ -150,7 +150,7 @@ def update_extension(ext):
         pass
     for branch in get_supported_branches():
         os.chdir(full_path)
-        logging.info('Creating %s for %s' %(branch, ext))
+        logging.info('Creating %s for %s' % (branch, ext))
         # Update remotes
         shell_exec(['git', 'fetch'])
         try:
@@ -174,10 +174,10 @@ def update_extension(ext):
             continue
         # Create a 'version' file with basic info about the tarball
         with open('version', 'w') as f:
-            f.write('%s: %s\n' %(ext, branch))
+            f.write('%s: %s\n' % (ext, branch))
             f.write(shell_exec(['date', '+%Y-%m-%dT%H:%M:%S']) + '\n')  # TODO: Do this in python
             f.write(rev + '\n')
-        old_tarballs = glob.glob(os.path.join(conf.DIST_PATH, '%s-%s-*.tar.gz' %(ext, branch)))
+        old_tarballs = glob.glob(os.path.join(conf.DIST_PATH, '%s-%s-*.tar.gz' % (ext, branch)))
         logging.debug('Deleting old tarballs...')
         for old in old_tarballs:
             # FIXME: Race condition, we should probably do this later on...
