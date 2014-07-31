@@ -236,7 +236,10 @@ def main():
     extensions = get_all_extensions(update=True)
     logging.info('Starting update of all extensions...')
     for ext in extensions:
-        update_extension(ext)
+        try:
+            update_extension(ext)
+        except:
+            logging.error('Updating %s failed, skipping' % ext)
     logging.info('Finished update of all extensions!')
 
 
