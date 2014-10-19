@@ -234,6 +234,8 @@ def main():
     """
     Updates all extensions
     """
+    # Update MW config
+    get_extension_config(update=True)
     extensions = get_all_extensions(update=True)
     logging.info('Processing %s extensions' % len(extensions))
     logging.info('Starting update of all extensions...')
