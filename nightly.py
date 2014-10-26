@@ -93,10 +93,15 @@ def fetch_all_extensions():
     should not be called directly
     """
     logging.debug('Fetching list of all extensions...')
-    req = urllib.urlopen(get_extension_list())
-    text = req.read()
+    data = {
+        'action': 'query',
+        'list': 'extdistrepos',
+        'format': 'json'
+    }
+    req = urllib.urlopen(conf.API_URL, urllib.urlencode(data))
+    j = json.loads(req.read())
     req.close()
-    return text
+    return '\n'.join(j['query']['extdistrepos']['extensions'])
 
 
 def get_all_extensions(update=False):
@@ -121,12 +126,6 @@ def get_supported_branches():
     if conf.get('SUPPORTED_VERSIONS') is None:
         conf.SUPPORTED_VERSIONS = get_extension_config()['versions']
     return conf.SUPPORTED_VERSIONS
-
-
-def get_extension_list():
-    if conf.get('EXT_LIST') is None:
-        conf.EXT_LIST = get_extension_config()['extension-list']
-    return conf.EXT_LIST
 
 
 def fetch_extension_config():
