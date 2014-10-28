@@ -22,239 +22,223 @@ import subprocess
 import sys
 import urllib
 
-# Load our config from JSON
-if os.path.exists('/etc/extdist.conf'):
-    with open('/etc/extdist.conf', 'r') as f:
-        conf = json.load(f)
-elif os.path.exists(os.path.join(os.path.dirname(__file__), 'conf.json')):
-    with open(os.path.join(os.path.dirname(__file__), 'conf.json'), 'r') as f:
-        conf = json.load(f)
-else:
-    print 'extdist is not configured properly.'
-    quit()
 
-
-class AttrDict(dict):
-    def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
-        self.__dict__ = self
-
-# Allow accessing settings as attributes
-conf = AttrDict(conf)
-conf.EXT_PATH = os.path.join(conf.SRC_PATH, 'extensions')
-
-# Set up logging
-logging.basicConfig(
-    filename=conf.LOG_FILE,
-    level=logging.DEBUG,
-    format='%(asctime)s %(levelname)s:%(message)s'
-)
-
-
-def check_pid(pid):
-    """
-    Checks whether the given pid is running
-    """
-    try:
-        # This doesn't actually kill it, just checks if it is running
-        os.kill(pid, 0)
-    except OSError:
-        # Not running
-        return False
-    else:
-        # So it must be running
-        return True
-
-
-def create_pid_file():
-    """
-    Creates a pid file with the current pid
-    """
-    with open(conf.PID_FILE, 'w') as f:
-        f.write(str(os.getpid()))
-    logging.info('Creating pid file')
-
-# Check to make sure nightly.py isn't already running
-pid = os.getpid()
-if os.path.exists(conf.PID_FILE):
-    with open(conf.PID_FILE, 'r') as f:
-        old_pid = f.read()
-
-    if check_pid(int(old_pid)):
-        logging.warning('Another process of nightly.py is still running, quitting this one')
-        quit()
-
-create_pid_file()
-
-
-def fetch_all_extensions():
-    """
-    Returns raw text of extension list,
-    should not be called directly
-    """
-    logging.debug('Fetching list of all extensions...')
-    data = {
-        'action': 'query',
-        'list': 'extdistrepos',
-        'format': 'json'
-    }
-    req = urllib.urlopen(conf.API_URL, urllib.urlencode(data))
-    j = json.loads(req.read())
-    req.close()
-    return '\n'.join(j['query']['extdistrepos']['extensions'])
-
-
-def get_all_extensions(update=False):
-    """
-    Returns a list of all extension names,
-    possibly using a cached list locally
-    """
-    fname = os.path.join(conf.EXT_PATH, 'extension-list')
-    if update or not os.path.exists(fname):
-        with open(fname, 'w') as f:
-            exts = fetch_all_extensions()
-            f.write(exts)
-    else:
-        logging.debug('Loading extension-list from file cache')
-        with open(fname, 'r') as f:
-            exts = f.read()
-
-    return exts.strip().splitlines()
-
-
-def get_supported_branches():
-    if conf.get('SUPPORTED_VERSIONS') is None:
-        conf.SUPPORTED_VERSIONS = get_extension_config()['versions']
-    return conf.SUPPORTED_VERSIONS
-
-
-def fetch_extension_config():
-    logging.debug('Fetching ExtensionDistributor config from API...')
-    data = {
-        'action': 'query',
-        'meta': 'siteinfo',
-        'format': 'json',
-    }
-    req = urllib.urlopen(conf.API_URL, urllib.urlencode(data))
-    resp = json.loads(req.read())
-    req.close()
-    return {
-        'versions': resp['query']['general']['extensiondistributor']['snapshots'],
-        'extension-list': resp['query']['general']['extensiondistributor']['list']
-    }
-
-
-def get_extension_config(update=False):
-    fname = os.path.join(conf.EXT_PATH, 'mw-conf.json')
-    if update or not os.path.exists(fname):
-        with open(fname, 'w') as f:
-            e_config = fetch_extension_config()
-            json.dump(e_config, f)
-    else:
-        with open(fname, 'r') as f:
-            try:
-                e_config = json.load(f)
-            except ValueError:
-                e_config = None
-
-    if e_config is None:
-        e_config = get_extension_config(update=True)
-
-    return e_config
-
-
-def shell_exec(args, **kwargs):
-    """
-    Shortcut wrapper to execute a shell command
-
-    >>> shell_exec(['ls', '-l'])
-    """
-    return subprocess.check_output(args, **kwargs)
-
-
-def update_extension(ext):
-    """
-    Fetch an extension's updates, and
-    create new tarballs if needed
-    """
-    full_path = os.path.join(conf.EXT_PATH, ext)
-    logging.info('Starting update for %s' % ext)
-    if not os.path.exists(full_path):
-        os.chdir(conf.EXT_PATH)
-        logging.debug('Cloning %s' % ext)
-        shell_exec(['git', 'clone', conf.GIT_URL % ext, ext])
+class TarballGenerator(object):
+    def __init__(self, conf):
+        self.API_URL = conf['API_URL']
+        self.DIST_PATH = conf['DIST_PATH']
+        self.GIT_URL = conf['GIT_URL']
+        self.LOG_FILE = conf['LOG_FILE']
+        self.SRC_PATH = conf['SRC_PATH']
+        self.PID_FILE = conf['PID_FILE']
+        self.LOG_FILE = conf['LOG_FILE']
+        self.EXT_PATH = os.path.join(self.SRC_PATH, 'extensions')
+        self._extension_list = None
+        self._extension_config = None
         pass
-    for branch in get_supported_branches():
-        os.chdir(full_path)
-        logging.info('Creating %s for %s' % (branch, ext))
-        # Update remotes
-        shell_exec(['git', 'fetch'])
+
+    @property
+    def extension_list(self):
+        """
+        Lazy-load the list of all extensions
+        """
+        if self._extension_list is None:
+            self._extension_list = self.fetch_all_extensions()
+        return self._extension_list
+
+    def fetch_all_extensions(self):
+        """
+        Does an API request to get the complete list of extensions.
+        Do not call directly.
+        """
+        logging.debug('Fetching list of all extensions...')
+        data = {
+            'action': 'query',
+            'list': 'extdistrepos',
+            'format': 'json'
+        }
+        req = urllib.urlopen(self.API_URL, urllib.urlencode(data))
+        j = json.loads(req.read())
+        req.close()
+        return j['query']['extdistrepos']['extensions']
+
+    @property
+    def supported_versions(self):
+        """
+        Lazy-load the list of supported branches
+        """
+        if self._extension_config is None:
+            self.fetch_extension_config()
+        return self._extension_config['snapshots']
+
+    def fetch_extension_config(self):
+        """
+        Fetch the ExtensionDistributor configuration from the API
+        Do not call this directly.
+        """
+        logging.debug('Fetching ExtensionDistributor config from API...')
+        data = {
+            'action': 'query',
+            'meta': 'siteinfo',
+            'format': 'json',
+        }
+        req = urllib.urlopen(self.API_URL, urllib.urlencode(data))
+        resp = json.loads(req.read())
+        req.close()
+        self._extension_config = resp['query']['general']['extensiondistributor']
+
+        return {
+            'versions': resp['query']['general']['extensiondistributor']['snapshots'],
+            'extension-list': resp['query']['general']['extensiondistributor']['list']
+        }
+
+    def init(self):
+        """
+        Does basic initialization
+        """
+        # Set up logging
+        logging.basicConfig(
+            filename=self.LOG_FILE,
+            level=logging.DEBUG,
+            format='%(asctime)s %(levelname)s:%(message)s'
+        )
+
+        # Check to make sure nightly.py isn't already running
+        if os.path.exists(self.PID_FILE):
+            with open(self.PID_FILE, 'r') as f:
+                old_pid = f.read()
+
+            if self.check_pid(int(old_pid)):
+                logging.warning('Another process of nightly.py is still running, quitting this one')
+                quit()
+
+        self.create_pid_file()
+
+        # Init some directories we'll need
+        if not os.path.isdir(self.EXT_PATH):
+            self.shell_exec(['mkdir', '-p', self.EXT_PATH])
+        if not os.path.isdir(self.DIST_PATH):
+            self.shell_exec(['mkdir', '-p', self.DIST_PATH])
+
+    def shell_exec(self, args, **kwargs):
+        """
+        Shortcut wrapper to execute a shell command
+
+        >>> self.shell_exec(['ls', '-l'])
+        """
+        return subprocess.check_output(args, **kwargs)
+
+    def update_extension(self, ext):
+        """
+        Fetch an extension's updates, and
+        create new tarballs if needed
+        """
+        full_path = os.path.join(self.EXT_PATH, ext)
+        logging.info('Starting update for %s' % ext)
+        if not os.path.exists(full_path):
+            os.chdir(self.EXT_PATH)
+            logging.debug('Cloning %s' % ext)
+            self.shell_exec(['git', 'clone', self.GIT_URL % ext, ext])
+            pass
+        for branch in self.supported_versions:
+            os.chdir(full_path)
+            logging.info('Creating %s for %s' % (branch, ext))
+            # Update remotes
+            self.shell_exec(['git', 'fetch'])
+            try:
+                # Could fail if repo is empty
+                self.shell_exec(['git', 'reset', '--hard', 'origin/master'])
+                # Checkout the branch
+                self.shell_exec(['git', 'checkout', 'origin/%s' % branch])
+            except subprocess.CalledProcessError:
+                # Just a warning because this is expected for some extensions
+                logging.warning('could not checkout origin/%s' % branch)
+                continue
+            # Sync submodules in case their urls have changed
+            self.shell_exec(['git', 'submodule', 'sync'])
+            # Update them, initializing new ones if needed
+            self.shell_exec(['git', 'submodule', 'update', '--init'])
+            # Gets short hash of HEAD
+            rev = self.shell_exec(['git', 'rev-parse', '--short', 'HEAD']).strip()
+            tarball_fname = '%s-%s-%s.tar.gz' % (ext, branch, rev)
+            if os.path.exists(os.path.join(self.DIST_PATH, tarball_fname)):
+                logging.debug('No updates to branch, tarball already exists.')
+                continue
+            # Create a 'version' file with basic info about the tarball
+            with open('version', 'w') as f:
+                f.write('%s: %s\n' % (ext, branch))
+                f.write(self.shell_exec(['date', '+%Y-%m-%dT%H:%M:%S']) + '\n')  # TODO: Do this in python
+                f.write(rev + '\n')
+            old_tarballs = glob.glob(os.path.join(self.DIST_PATH, '%s-%s-*.tar.gz' % (ext, branch)))
+            logging.debug('Deleting old tarballs...')
+            for old in old_tarballs:
+                # FIXME: Race condition, we should probably do this later on...
+                os.unlink(old)
+            os.chdir(self.EXT_PATH)
+            # Finally, create the new tarball
+            self.shell_exec(['tar', 'czPf', tarball_fname, ext])
+        logging.debug('Moving new tarballs into dist/')
+        tarballs = glob.glob(os.path.join(self.EXT_PATH, '*.tar.gz'))
+        for tar in tarballs:
+            fname = tar.split('/')[-1]
+            os.rename(tar, os.path.join(self.DIST_PATH, fname))
+        logging.info('Finished update for %s' % ext)
+
+    def check_pid(self, pid):
+        """
+        Checks whether the given pid is running
+        """
         try:
-            # Could fail if repo is empty
-            shell_exec(['git', 'reset', '--hard', 'origin/master'])
-            # Checkout the branch
-            shell_exec(['git', 'checkout', 'origin/%s' % branch])
-        except subprocess.CalledProcessError:
-            # Just a warning because this is expected for some extensions
-            logging.warning('could not checkout origin/%s' % branch)
-            continue
-        # Sync submodules in case their urls have changed
-        shell_exec(['git', 'submodule', 'sync'])
-        # Update them, initializing new ones if needed
-        shell_exec(['git', 'submodule', 'update', '--init'])
-        # Gets short hash of HEAD
-        rev = shell_exec(['git', 'rev-parse', '--short', 'HEAD']).strip()
-        tarball_fname = '%s-%s-%s.tar.gz' % (ext, branch, rev)
-        if os.path.exists(os.path.join(conf.DIST_PATH, tarball_fname)):
-            logging.debug('No updates to branch, tarball already exists.')
-            continue
-        # Create a 'version' file with basic info about the tarball
-        with open('version', 'w') as f:
-            f.write('%s: %s\n' % (ext, branch))
-            f.write(shell_exec(['date', '+%Y-%m-%dT%H:%M:%S']) + '\n')  # TODO: Do this in python
-            f.write(rev + '\n')
-        old_tarballs = glob.glob(os.path.join(conf.DIST_PATH, '%s-%s-*.tar.gz' % (ext, branch)))
-        logging.debug('Deleting old tarballs...')
-        for old in old_tarballs:
-            # FIXME: Race condition, we should probably do this later on...
-            os.unlink(old)
-        os.chdir(conf.EXT_PATH)
-        # Finally, create the new tarball
-        shell_exec(['tar', 'czPf', tarball_fname, ext])
-    logging.debug('Moving new tarballs into dist/')
-    tarballs = glob.glob(os.path.join(conf.EXT_PATH, '*.tar.gz'))
-    for tar in tarballs:
-        fname = tar.split('/')[-1]
-        os.rename(tar, os.path.join(conf.DIST_PATH, fname))
-    logging.info('Finished update for %s' % ext)
+            # This doesn't actually kill it, just checks if it is running
+            os.kill(pid, 0)
+        except OSError:
+            # Not running
+            return False
+        else:
+            # So it must be running
+            return True
+
+    def create_pid_file(self):
+        """
+        Creates a pid file with the current pid
+        """
+        with open(self.PID_FILE, 'w') as f:
+            f.write(str(os.getpid()))
+        logging.info('Creating pid file')
+
+    def run(self, extensions=None):
+        self.init()
+        if extensions is None:
+            extensions = self.extension_list
+        logging.info('Processing %s extensions' % len(extensions))
+        logging.info('Starting update of all extensions...')
+        for ext in extensions:
+            try:
+                self.update_extension(ext)
+            except:
+                logging.error('Updating %s failed, skipping' % ext)
+        logging.info('Finished update of all extensions!')
 
 
 def main():
-    """
-    Updates all extensions
-    """
-    # Update MW config
-    get_extension_config(update=True)
-    extensions = get_all_extensions(update=True)
-    logging.info('Processing %s extensions' % len(extensions))
-    logging.info('Starting update of all extensions...')
-    for ext in extensions:
-        try:
-            update_extension(ext)
-        except:
-            logging.error('Updating %s failed, skipping' % ext)
-    logging.info('Finished update of all extensions!')
-
-
-# Init
-if not os.path.isdir(conf.EXT_PATH):
-    shell_exec(['mkdir', '-p', conf.EXT_PATH])
-if not os.path.isdir(conf.DIST_PATH):
-    shell_exec(['mkdir', '-p', conf.DIST_PATH])
+    # Load our config from JSON
+    conf = None
+    if os.path.exists('/etc/extdist.conf'):
+        with open('/etc/extdist.conf', 'r') as f:
+            conf = json.load(f)
+    elif os.path.exists(os.path.join(os.path.dirname(__file__), 'conf.json')):
+        with open(os.path.join(os.path.dirname(__file__), 'conf.json'), 'r') as f:
+            conf = json.load(f)
+    else:
+        print 'extdist is not configured properly.'
+        quit()
+    if '--all' in sys.argv:
+        extensions = None
+    else:
+        extensions = ['VisualEditor']
+    generator = TarballGenerator(conf)
+    generator.run(extensions=extensions)
 
 
 if __name__ == '__main__':
-    if '--all' in sys.argv:
-        main()
-    else:
-        update_extension('VisualEditor')
+    main()
