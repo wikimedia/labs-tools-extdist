@@ -5,12 +5,14 @@ nightly.py - tarball creator
 This is a script that creates tarballs
 for MediaWiki extensions based on the
 configuration in conf.py. It accepts
-one optional argument:
+some optional arguments:
 
 * --all: Generate tarballs for all extensions.
+* --skins: Process skins instead of extensions
 
 By default, it generates only the tarball for the
-VisualEditor extension. This will change in the future
+VisualEditor extension (or the Vector skin if
+--skins is passed). This will change in the future
 when debugging becomes less rare.
 """
 
@@ -24,7 +26,7 @@ import urllib
 
 
 class TarballGenerator(object):
-    def __init__(self, conf):
+    def __init__(self, conf, repo_type='extensions'):
         self.API_URL = conf['API_URL']
         self.DIST_PATH = conf['DIST_PATH']
         self.GIT_URL = conf['GIT_URL']
@@ -32,26 +34,27 @@ class TarballGenerator(object):
         self.SRC_PATH = conf['SRC_PATH']
         self.PID_FILE = conf['PID_FILE']
         self.LOG_FILE = conf['LOG_FILE']
-        self.EXT_PATH = os.path.join(self.SRC_PATH, 'extensions')
-        self._extension_list = None
+        self.REPO_TYPE = repo_type
+        self.EXT_PATH = os.path.join(self.SRC_PATH, self.REPO_TYPE)
+        self._repo_list = None
         self._extension_config = None
         pass
 
     @property
-    def extension_list(self):
+    def repo_list(self):
         """
         Lazy-load the list of all extensions
         """
-        if self._extension_list is None:
-            self._extension_list = self.fetch_all_extensions()
-        return self._extension_list
+        if self._repo_list is None:
+            self._repo_list = self.fetch_all_repos()
+        return self._repo_list
 
-    def fetch_all_extensions(self):
+    def fetch_all_repos(self):
         """
         Does an API request to get the complete list of extensions.
         Do not call directly.
         """
-        logging.debug('Fetching list of all extensions...')
+        logging.debug('Fetching list of all %s...' % self.REPO_TYPE)
         data = {
             'action': 'query',
             'list': 'extdistrepos',
@@ -60,7 +63,7 @@ class TarballGenerator(object):
         req = urllib.urlopen(self.API_URL, urllib.urlencode(data))
         j = json.loads(req.read())
         req.close()
-        return j['query']['extdistrepos']['extensions']
+        return j['query']['extdistrepos'][self.REPO_TYPE]
 
     @property
     def supported_versions(self):
@@ -206,38 +209,44 @@ class TarballGenerator(object):
             f.write(str(os.getpid()))
         logging.info('Creating pid file')
 
-    def run(self, extensions=None):
+    def run(self, repos=None):
         self.init()
-        if extensions is None:
-            extensions = self.extension_list
-        logging.info('Processing %s extensions' % len(extensions))
-        logging.info('Starting update of all extensions...')
-        for ext in extensions:
+        if repos is None:
+            repos = self.repo_list
+        logging.info('Processing %s %s' % (len(repos)), self.REPO_TYPE)
+        logging.info('Starting update of all %s...' % self.REPO_TYPE)
+        for repo in repos:
             try:
-                self.update_extension(ext)
+                self.update_extension(repo)
             except:
-                logging.error('Updating %s failed, skipping' % ext)
-        logging.info('Finished update of all extensions!')
+                logging.error('Updating %s failed, skipping' % repo)
+        logging.info('Finished update of all %s!' % self.REPO_TYPE)
 
 
 def main():
     # Load our config from JSON
     conf = None
-    if os.path.exists('/etc/extdist.conf'):
-        with open('/etc/extdist.conf', 'r') as f:
+    skins = '--skins' in sys.argv
+    etc_path = '/etc/skindist.conf' if skins else '/etc/extdist.conf'
+    local_fname = 'skinconf.json' if skins else 'conf.json'
+    if os.path.exists(etc_path):
+        with open(etc_path, 'r') as f:
             conf = json.load(f)
-    elif os.path.exists(os.path.join(os.path.dirname(__file__), 'conf.json')):
-        with open(os.path.join(os.path.dirname(__file__), 'conf.json'), 'r') as f:
+    elif os.path.exists(os.path.join(os.path.dirname(__file__), local_fname)):
+        with open(os.path.join(os.path.dirname(__file__), local_fname), 'r') as f:
             conf = json.load(f)
     else:
         print 'extdist is not configured properly.'
         quit()
     if '--all' in sys.argv:
-        extensions = None
+        repos = None
+    elif skins:
+        repos = ['Vector']
     else:
-        extensions = ['VisualEditor']
-    generator = TarballGenerator(conf)
-    generator.run(extensions=extensions)
+        repos = ['VisualEditor']
+    repo_type = 'skins' if skins else 'extensions'
+    generator = TarballGenerator(conf, repo_type=repo_type)
+    generator.run(repos=repos)
 
 
 if __name__ == '__main__':
