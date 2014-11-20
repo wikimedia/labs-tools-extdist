@@ -213,7 +213,7 @@ class TarballGenerator(object):
         self.init()
         if repos is None:
             repos = self.repo_list
-        logging.info('Processing %s %s' % (len(repos)), self.REPO_TYPE)
+        logging.info('Processing %s %s' % (len(repos), self.REPO_TYPE))
         logging.info('Starting update of all %s...' % self.REPO_TYPE)
         for repo in repos:
             try:
