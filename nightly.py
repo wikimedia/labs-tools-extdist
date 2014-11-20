@@ -9,6 +9,7 @@ some optional arguments:
 
 * --all: Generate tarballs for all extensions.
 * --skins: Process skins instead of extensions
+* --force: Regenerate all tarballs even if they already exist
 
 By default, it generates only the tarball for the
 VisualEditor extension (or the Vector skin if
@@ -26,7 +27,7 @@ import urllib
 
 
 class TarballGenerator(object):
-    def __init__(self, conf, repo_type='extensions'):
+    def __init__(self, conf, repo_type='extensions', force=False):
         self.API_URL = conf['API_URL']
         self.DIST_PATH = conf['DIST_PATH']
         self.GIT_URL = conf['GIT_URL']
@@ -38,6 +39,7 @@ class TarballGenerator(object):
         self.EXT_PATH = os.path.join(self.SRC_PATH, self.REPO_TYPE)
         self._repo_list = None
         self._extension_config = None
+        self.force = force
         pass
 
     @property
@@ -164,7 +166,7 @@ class TarballGenerator(object):
             # Gets short hash of HEAD
             rev = self.shell_exec(['git', 'rev-parse', '--short', 'HEAD']).strip()
             tarball_fname = '%s-%s-%s.tar.gz' % (ext, branch, rev)
-            if os.path.exists(os.path.join(self.DIST_PATH, tarball_fname)):
+            if not self.force and os.path.exists(os.path.join(self.DIST_PATH, tarball_fname)):
                 logging.debug('No updates to branch, tarball already exists.')
                 continue
             # Create a 'version' file with basic info about the tarball
@@ -179,7 +181,7 @@ class TarballGenerator(object):
                 os.unlink(old)
             os.chdir(self.EXT_PATH)
             # Finally, create the new tarball
-            self.shell_exec(['tar', 'czPf', tarball_fname, ext])
+            self.shell_exec(['tar', '--exclude', '.git', '-czPf', tarball_fname, ext])
         logging.debug('Moving new tarballs into dist/')
         tarballs = glob.glob(os.path.join(self.EXT_PATH, '*.tar.gz'))
         for tar in tarballs:
@@ -245,7 +247,8 @@ def main():
     else:
         repos = ['VisualEditor']
     repo_type = 'skins' if skins else 'extensions'
-    generator = TarballGenerator(conf, repo_type=repo_type)
+    force = '--force' in sys.argv
+    generator = TarballGenerator(conf, repo_type=repo_type, force=force)
     generator.run(repos=repos)
 
 
