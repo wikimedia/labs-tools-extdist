@@ -41,7 +41,6 @@ class TarballGeneratorTest(unittest.TestCase):
         self.assertIn('VisualEditor', gen.repo_list)
         self.assertIn('ExtensionDistributor', gen.repo_list)
 
-    @unittest.expectedFailure
     def test_skin_repo_list(self):
         skin_gen = self.get_generator('skins')
         self.assertIn('CologneBlue', skin_gen.repo_list)
