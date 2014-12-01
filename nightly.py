@@ -37,6 +37,7 @@ class TarballGenerator(object):
         self.LOG_FILE = conf['LOG_FILE']
         self.REPO_TYPE = repo_type
         self.EXT_PATH = os.path.join(self.SRC_PATH, self.REPO_TYPE)
+        self.COMPOSER = conf.get('COMPOSER')
         self._repo_list = None
         self._extension_config = None
         self.force = force
@@ -173,6 +174,10 @@ class TarballGenerator(object):
             if not self.force and os.path.exists(os.path.join(self.DIST_PATH, tarball_fname)):
                 logging.debug('No updates to branch, tarball already exists.')
                 continue
+            if self.COMPOSER and os.path.exists('composer.json'):
+                logging.debug('Running composer install for %s' % ext)
+                self.shell_exec([self.COMPOSER, 'install'])
+                pass
             # Create a 'version' file with basic info about the tarball
             with open('version', 'w') as f:
                 f.write('%s: %s\n' % (ext, branch))
