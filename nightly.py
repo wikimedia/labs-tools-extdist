@@ -153,12 +153,16 @@ class TarballGenerator(object):
             try:
                 # Could fail if repo is empty
                 self.shell_exec(['git', 'reset', '--hard', 'origin/master'])
+                # Reset everything!
+                self.shell_exec(['git', 'clean', '-ffd'])
                 # Checkout the branch
                 self.shell_exec(['git', 'checkout', 'origin/%s' % branch])
             except subprocess.CalledProcessError:
                 # Just a warning because this is expected for some extensions
                 logging.warning('could not checkout origin/%s' % branch)
                 continue
+            # Reset everything, again.
+            self.shell_exec(['git', 'clean', '-ffd'])
             # Sync submodules in case their urls have changed
             self.shell_exec(['git', 'submodule', 'sync'])
             # Update them, initializing new ones if needed
