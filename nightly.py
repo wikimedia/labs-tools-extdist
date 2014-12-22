@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 """
 nightly.py - tarball creator
 
@@ -247,7 +248,7 @@ def main():
         with open(os.path.join(os.path.dirname(__file__), local_fname), 'r') as f:
             conf = json.load(f)
     else:
-        print 'extdist is not configured properly.'
+        print('extdist is not configured properly.')
         quit()
     if '--all' in sys.argv:
         repos = None
