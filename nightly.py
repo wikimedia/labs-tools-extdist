@@ -24,6 +24,7 @@ import logging
 import os
 import subprocess
 import sys
+import traceback
 import urllib
 
 
@@ -177,8 +178,11 @@ class TarballGenerator(object):
                 continue
             if self.COMPOSER and os.path.exists('composer.json'):
                 logging.debug('Running composer install for %s' % ext)
-                self.shell_exec([self.COMPOSER, 'install'])
-                pass
+                try:
+                    self.shell_exec([self.COMPOSER, 'install'])
+                except subprocess.CalledProcessError:
+                    logging.error(traceback.format_exc())
+                    logging.error('composer install failed')
             # Create a 'version' file with basic info about the tarball
             with open('version', 'w') as f:
                 f.write('%s: %s\n' % (ext, branch))
@@ -231,6 +235,7 @@ class TarballGenerator(object):
             try:
                 self.update_extension(repo)
             except:
+                logging.error(traceback.format_exc())
                 logging.error('Updating %s failed, skipping' % repo)
         logging.info('Finished update of all %s!' % self.REPO_TYPE)
 
