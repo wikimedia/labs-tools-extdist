@@ -183,6 +183,26 @@ class TarballGenerator(object):
                 except subprocess.CalledProcessError:
                     logging.error(traceback.format_exc())
                     logging.error('composer install failed')
+            # Create gitinfo.json to be read/displayed by Special:Version
+            git_info = {}
+            with open('.git/HEAD') as f_head:
+                head = f_head.read()
+            if head.startswith('ref:'):
+                head = head[5:]  # Strip 'ref :'
+            git_info['head'] = head
+            # Get the SHA-1
+            git_info['headSHA1'] = self.shell_exec(['git', 'rev-parse', 'HEAD'])
+            git_info['headCommitDate'] = self.shell_exec(['git', 'show', '-s', '--format=format:%ct', 'HEAD'])
+            if head.startswith('refs/heads'):
+                branch = head.split('/')[-1]
+            else:
+                branch = head
+            git_info['branch'] = branch
+            git_info['remoteURL'] = self.GIT_URL % ext
+            with open('gitinfo.json', 'w') as f:
+                json.dump(git_info, f)
+
+            # TODO: Stop writing this file now that we have gitinfo.json
             # Create a 'version' file with basic info about the tarball
             with open('version', 'w') as f:
                 f.write('%s: %s\n' % (ext, branch))
