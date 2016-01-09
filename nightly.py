@@ -257,6 +257,9 @@ class TarballGenerator(object):
         for repo in repos:
             try:
                 self.update_extension(repo)
+            except KeyboardInterrupt:
+                logging.error(traceback.format_exc())
+                sys.exit(1)
             except:
                 logging.error(traceback.format_exc())
                 logging.error('Updating %s failed, skipping' % repo)
