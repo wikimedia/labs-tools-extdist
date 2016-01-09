@@ -177,12 +177,15 @@ class TarballGenerator(object):
                 logging.debug('No updates to branch, tarball already exists.')
                 continue
             if self.COMPOSER and os.path.exists('composer.json'):
-                logging.debug('Running composer install for %s' % ext)
-                try:
-                    self.shell_exec([self.COMPOSER, 'install'])
-                except subprocess.CalledProcessError:
-                    logging.error(traceback.format_exc())
-                    logging.error('composer install failed')
+                with open('composer.json') as f_composer:
+                    d_composer = json.load(f_composer)
+                if 'require' in d_composer:
+                    logging.debug('Running composer install for %s' % ext)
+                    try:
+                        self.shell_exec([self.COMPOSER, 'install', '--no-dev'])
+                    except subprocess.CalledProcessError:
+                        logging.error(traceback.format_exc())
+                        logging.error('composer install failed')
             # Create gitinfo.json to be read/displayed by Special:Version
             git_info = {}
             with open('.git/HEAD') as f_head:
