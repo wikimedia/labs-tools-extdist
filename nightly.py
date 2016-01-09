@@ -157,7 +157,7 @@ class TarballGenerator(object):
                 # Could fail if repo is empty
                 self.shell_exec(['git', 'reset', '--hard', 'origin/master'])
                 # Reset everything!
-                self.shell_exec(['git', 'clean', '-ffd'])
+                self.shell_exec(['git', 'clean', '-ffdx'])
                 # Checkout the branch
                 self.shell_exec(['git', 'checkout', 'origin/%s' % branch])
             except subprocess.CalledProcessError:
