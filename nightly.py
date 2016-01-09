@@ -250,7 +250,7 @@ class TarballGenerator(object):
 
     def run(self, repos=None):
         self.init()
-        if repos is None:
+        if not repos:
             repos = self.repo_list
         logging.info('Processing %s %s' % (len(repos), self.REPO_TYPE))
         logging.info('Starting update of all %s...' % self.REPO_TYPE)
@@ -279,11 +279,14 @@ def main():
         print('extdist is not configured properly.')
         quit()
     if '--all' in sys.argv:
-        repos = None
+        repos = []
     elif skins:
         repos = ['Vector']
     else:
         repos = ['VisualEditor']
+    for arg in sys.argv:
+        if arg.startswith('--repo'):
+            repos.append(arg.split('=', 1)[1])
     repo_type = 'skins' if skins else 'extensions'
     force = '--force' in sys.argv
     generator = TarballGenerator(conf, repo_type=repo_type, force=force)
