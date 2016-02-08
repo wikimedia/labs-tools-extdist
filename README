@@ -1,0 +1,10 @@
+extdist
+
+The extdist service is a companion to the ExtensionDistributor MediaWiki
+extension. It uses that API to clone extensions and skins from Gerrit
+and build tarballs for distribution. The main instance of this services
+runs at extdist.wmflabs.org.
+
+Code prior to 2016-02-08 was licensed under a vague "public domain"
+statement. It is now licensed under the GPL, version 3 or later. A copy of
+the license may be found at COPYING.
