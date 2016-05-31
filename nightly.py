@@ -197,10 +197,10 @@ class TarballGenerator(object):
             git_info['headSHA1'] = self.shell_exec(['git', 'rev-parse', 'HEAD'])
             git_info['headCommitDate'] = self.shell_exec(['git', 'show', '-s', '--format=format:%ct', 'HEAD'])
             if head.startswith('refs/heads'):
-                branch = head.split('/')[-1]
+                gi_branch = head.split('/')[-1]
             else:
-                branch = head
-            git_info['branch'] = branch
+                gi_branch = head
+            git_info['branch'] = gi_branch
             git_info['remoteURL'] = self.GIT_URL % ext
             with open('gitinfo.json', 'w') as f:
                 json.dump(git_info, f)
