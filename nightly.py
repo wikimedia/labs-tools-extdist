@@ -218,7 +218,7 @@ class TarballGenerator(object):
                 os.unlink(old)
             os.chdir(self.EXT_PATH)
             # Finally, create the new tarball
-            self.shell_exec(['tar', '--exclude', '.git', '-czPf', tarball_fname, ext])
+            self.shell_exec(['tar', '--exclude', '.git', '-czhPf', tarball_fname, ext])
         logging.debug('Moving new tarballs into dist/')
         tarballs = glob.glob(os.path.join(self.EXT_PATH, '*.tar.gz'))
         for tar in tarballs:
