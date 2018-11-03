@@ -22,6 +22,7 @@ import glob
 import json
 import logging
 import os
+import random
 import subprocess
 import sys
 import traceback
@@ -225,6 +226,10 @@ class TarballGenerator(object):
             fname = tar.split('/')[-1]
             os.rename(tar, os.path.join(self.DIST_PATH, fname))
         logging.info('Finished update for %s' % ext)
+
+        if random.randint(0, 99) == 0:
+            # Run git gc every 100th process (statistically)
+            self.shell_exec(['git', 'gc'], cwd=full_path)
 
     def check_pid(self, pid):
         """
