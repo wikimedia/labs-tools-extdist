@@ -26,7 +26,11 @@ import random
 import subprocess
 import sys
 import traceback
-import urllib
+try:
+    from urllib import urlopen, urlencode
+except ImportError:
+    from urllib.request import urlopen
+    from urllib.parse import urlencode
 
 
 class TarballGenerator(object):
@@ -66,8 +70,8 @@ class TarballGenerator(object):
             'list': 'extdistrepos',
             'format': 'json'
         }
-        req = urllib.urlopen(self.API_URL, urllib.urlencode(data))
-        j = json.loads(req.read())
+        req = urlopen(self.API_URL, urlencode(data).encode('utf-8'))
+        j = json.loads(req.read().decode('utf-8'))
         req.close()
         return j['query']['extdistrepos'][self.REPO_TYPE]
 
@@ -91,8 +95,8 @@ class TarballGenerator(object):
             'meta': 'siteinfo',
             'format': 'json',
         }
-        req = urllib.urlopen(self.API_URL, urllib.urlencode(data))
-        resp = json.loads(req.read())
+        req = urlopen(self.API_URL, urlencode(data).encode('utf-8'))
+        resp = json.loads(req.read().decode('utf-8'))
         req.close()
         self._extension_config = resp['query']['general']['extensiondistributor']
 
@@ -135,7 +139,7 @@ class TarballGenerator(object):
 
         >>> self.shell_exec(['ls', '-l'])
         """
-        return subprocess.check_output(args, **kwargs)
+        return subprocess.check_output(args, **kwargs).decode('utf-8')
 
     def update_extension(self, ext):
         """

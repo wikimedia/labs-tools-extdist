@@ -1,1 +1,7 @@
+/src
+/dist
 /.tox
+extdist.log
+extdist.pid
+*.pyc
+__pycache__
