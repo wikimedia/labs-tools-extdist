@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-from __future__ import print_function
+#!/usr/bin/env python3
 """
 nightly.py - tarball creator
 
@@ -134,7 +133,7 @@ class TarballGenerator(object):
 
         >>> self.shell_exec(['ls', '-l'])
         """
-        return subprocess.check_output(args, **kwargs).decode('utf-8')
+        return subprocess.check_output(args, **kwargs).decode()
 
     def update_extension(self, ext):
         """
