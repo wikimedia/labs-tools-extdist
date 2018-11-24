@@ -23,14 +23,10 @@ import json
 import logging
 import os
 import random
+import requests
 import subprocess
 import sys
 import traceback
-try:
-    from urllib import urlopen, urlencode
-except ImportError:
-    from urllib.request import urlopen
-    from urllib.parse import urlencode
 
 
 class TarballGenerator(object):
@@ -48,7 +44,7 @@ class TarballGenerator(object):
         self._repo_list = None
         self._extension_config = None
         self.force = force
-        pass
+        self.session = requests.Session()
 
     @property
     def repo_list(self):
@@ -70,10 +66,9 @@ class TarballGenerator(object):
             'list': 'extdistrepos',
             'format': 'json'
         }
-        req = urlopen(self.API_URL, urlencode(data).encode('utf-8'))
-        j = json.loads(req.read().decode('utf-8'))
-        req.close()
-        return j['query']['extdistrepos'][self.REPO_TYPE]
+        r = self.session.get(self.API_URL, params=data)
+        r.raise_for_status()
+        return r.json()['query']['extdistrepos'][self.REPO_TYPE]
 
     @property
     def supported_versions(self):
@@ -95,9 +90,9 @@ class TarballGenerator(object):
             'meta': 'siteinfo',
             'format': 'json',
         }
-        req = urlopen(self.API_URL, urlencode(data).encode('utf-8'))
-        resp = json.loads(req.read().decode('utf-8'))
-        req.close()
+        r = self.session.get(self.API_URL, params=data)
+        r.raise_for_status()
+        resp = r.json()
         self._extension_config = resp['query']['general']['extensiondistributor']
 
         return {
