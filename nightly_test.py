@@ -9,12 +9,11 @@ git is installed.
 """
 
 import os
-import unittest
 
 from nightly import TarballGenerator
 
 
-class TarballGeneratorTest(unittest.TestCase):
+class TestTarballGenerator:
     def get_generator(self, _type='extensions'):
         path = os.path.dirname(os.path.abspath(__file__))
         shortname = 'skindist' if _type == 'skins' else 'extdist'
@@ -29,7 +28,7 @@ class TarballGeneratorTest(unittest.TestCase):
 
     def test_supported_versions(self):
         gen = self.get_generator('extensions')
-        self.assertIn('master', gen.supported_versions)
+        assert 'master' in gen.supported_versions
 
     def test_repo_list(self):
         """
@@ -37,21 +36,17 @@ class TarballGeneratorTest(unittest.TestCase):
         let's assume that some of them exist
         """
         gen = self.get_generator('extensions')
-        self.assertIn('MassMessage', gen.repo_list)
-        self.assertIn('VisualEditor', gen.repo_list)
-        self.assertIn('ExtensionDistributor', gen.repo_list)
+        assert 'MassMessage' in gen.repo_list
+        assert 'VisualEditor' in gen.repo_list
+        assert 'ExtensionDistributor' in gen.repo_list
 
     def test_skin_repo_list(self):
         skin_gen = self.get_generator('skins')
-        self.assertIn('CologneBlue', skin_gen.repo_list)
-        self.assertIn('GreyStuff', skin_gen.repo_list)
-        self.assertIn('MonoBook', skin_gen.repo_list)
+        assert 'CologneBlue' in skin_gen.repo_list
+        assert 'GreyStuff' in skin_gen.repo_list
+        assert 'MonoBook' in skin_gen.repo_list
 
     def test_shell_exec(self):
         gen = self.get_generator('extensions')
-        self.assertEqual('hi\n', gen.shell_exec(['echo', 'hi']))
-        self.assertIn('git version', gen.shell_exec(['git', '--version']))
-
-
-if __name__ == '__main__':
-    unittest.main()
+        assert 'hi\n' == gen.shell_exec(['echo', 'hi'])
+        assert 'git version' in gen.shell_exec(['git', '--version'])
