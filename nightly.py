@@ -142,14 +142,17 @@ class TarballGenerator(object):
         """
         full_path = os.path.join(self.EXT_PATH, ext)
         logging.info('Starting update for %s' % ext)
+        repo_url = self.GIT_URL % ext
         if not os.path.exists(full_path):
             os.chdir(self.EXT_PATH)
             logging.debug('Cloning %s' % ext)
-            self.shell_exec(['git', 'clone', self.GIT_URL % ext, ext])
+            self.shell_exec(['git', 'clone', repo_url, ext])
             pass
         for branch in self.supported_versions:
             os.chdir(full_path)
             logging.info('Creating %s for %s' % (branch, ext))
+            # In case GIT_URL has changed
+            self.shell_exec(['git', 'remote', 'set-url', 'origin', repo_url])
             # Update remotes
             self.shell_exec(['git', 'fetch'])
             try:
