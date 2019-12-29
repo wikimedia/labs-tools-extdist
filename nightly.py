@@ -173,7 +173,7 @@ class TarballGenerator(object):
             # Update them, initializing new ones if needed
             self.shell_exec(['git', 'submodule', 'update', '--init'])
             # Gets short hash of HEAD
-            rev = self.shell_exec(['git', 'rev-parse', '--short', 'HEAD']).strip()
+            rev = self.shell_exec(['git', 'rev-parse', '--short=7', 'HEAD']).strip()
             tarball_fname = '%s-%s-%s.tar.gz' % (ext, branch, rev)
             if not self.force and os.path.exists(os.path.join(self.DIST_PATH, tarball_fname)):
                 logging.debug('No updates to branch, tarball already exists.')
