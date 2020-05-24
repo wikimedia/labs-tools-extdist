@@ -184,7 +184,7 @@ class TarballGenerator(object):
                 if 'require' in d_composer:
                     logging.debug('Running composer install for %s' % ext)
                     try:
-                        self.shell_exec([self.COMPOSER, 'install', '--no-dev'])
+                        self.shell_exec([self.COMPOSER, 'install', '--no-dev', '--ignore-platform-reqs'])
                     except subprocess.CalledProcessError:
                         logging.error(traceback.format_exc())
                         logging.error('composer install failed')
