@@ -3,6 +3,7 @@
     "DIST_PATH": "/srv/dist",
     "EXT_LIST": null,
     "GIT_URL": "https://gerrit.wikimedia.org/r/mediawiki/extensions/%s",
+    "HTTP_USER_AGENT": "extdist/0.0 (https://gerrit.wikimedia.org/g/labs/tools/extdist)",
     "LOG_FILE": "extdist.log",
     "SRC_PATH": "/srv/src",
     "PID_FILE": "extdist.pid",

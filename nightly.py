@@ -33,6 +33,10 @@ class TarballGenerator(object):
         self.API_URL = conf['API_URL']
         self.DIST_PATH = conf['DIST_PATH']
         self.GIT_URL = conf['GIT_URL']
+        self.HTTP_USER_AGENT = conf.get(
+            'HTTP_USER_AGENT',
+            'extdist/0.0 (https://gerrit.wikimedia.org/g/labs/tools/extdist)',
+        )
         self.LOG_FILE = conf['LOG_FILE']
         self.SRC_PATH = conf['SRC_PATH']
         self.PID_FILE = conf['PID_FILE']
@@ -44,6 +48,9 @@ class TarballGenerator(object):
         self._extension_config = None
         self.force = force
         self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': self.HTTP_USER_AGENT,
+        })
 
     @property
     def repo_list(self):

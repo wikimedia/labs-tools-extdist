@@ -8,6 +8,7 @@ Requires an internet connection and that
 git is installed.
 """
 
+from collections import defaultdict
 import os
 
 from nightly import TarballGenerator
@@ -29,6 +30,15 @@ class TestTarballGenerator:
     def test_supported_versions(self):
         gen = self.get_generator('extensions')
         assert 'master' in gen.supported_versions
+
+    def test_requests_session_has_user_agent(self):
+        conf = defaultdict(str)
+        conf['HTTP_USER_AGENT'] = 'extdisttest/0.0'
+
+        gen = TarballGenerator(conf, repo_type='extdist')
+
+        assert ('User-Agent', 'extdisttest/0.0') in gen.session.headers.items(), \
+            'request session must have an user-agent header set'
 
     def test_repo_list(self):
         """
